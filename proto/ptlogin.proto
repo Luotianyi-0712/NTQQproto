@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+package trpc.qqlogin.ptlogin;
+
+option go_package = "git.woa.com/qqlogin/proto/ptlogin/intf-trpc";
+option java_outer_classname = "PtloginProtos";
+
+import "google/protobuf/empty.proto";
+
+service PtLoginService {
+  // GetPSkeyBatch
+  rpc GetWebKeyBatch(GetWebKeyReq) returns (GetWebKeyRsp) {}  // @alias=/0x102a/0
+}
+
+message GetWebKeyReq {
+  repeated string domains = 1;
+  // 用于控制返回哪些票据，每一个bit代表一种票据类型(参考KeyType的定义)，为向前兼容，不设置默认返回pskey
+  uint32 flag = 2;
+}
+message KeyInfo {
+  string key = 1;
+  int64 expire_time = 2;        // pt4token到期时间戳
+  int64 next_refresh_time = 3;  // 下次刷新时间
+}
+message WebKey {
+  string domain = 1;
+  string key = 2;        // pskey
+  int64 key_expire = 3;  // pskey到期时间戳
+  string uskey = 4;
+  int64 uskey_expire = 5;  // uskey到期时间戳
+
+  KeyInfo pt4token = 6;
+}
+message GetWebKeyRsp {
+  repeated WebKey web_keys = 1;
+}

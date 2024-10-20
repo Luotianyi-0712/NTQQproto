@@ -1,0 +1,138 @@
+package com.tencent.mobileqq.highway;
+
+option optimize_for = LITE_RUNTIME;
+option java_package = "com.tencent.mobileqq.highway.protocol";
+option java_outer_classname = "Bdh_extinfo";
+
+//短视频相关 BEGIN
+message PicInfo
+{
+	optional uint32 uint32_idx 		= 1;	//下标,固定为0
+	optional uint32 uint32_size		= 2;	//文件大小
+	optional bytes  bytes_bin_md5	= 3;	//文件的md5 (16位)
+	optional uint32 uint32_type		= 4;	//文件格式  1-jpg 2-png 3-other
+}
+
+message VideoInfo
+{
+	optional uint32 uint32_idx 		= 1;	//下标,标识该视频在整个视频文件中的位置,从1开始
+	optional uint32 uint32_size		= 2;	//文件大小
+	optional bytes  bytes_bin_md5	= 3;	//文件的md5 (16位)
+	optional uint32 uint32_format	= 4;	//文件格式,1-avi,2-mp4,3-wmv,4-mkv,5-rmvb,6-rm,7-afs,8-mov,9-mod,10-ts,11-mts
+	optional uint32 uint32_res_len	= 5;	//文件分辨率 长
+	optional uint32 uint32_res_width= 6;	//文件分辨率 宽
+	optional uint32 uint32_time		= 7;	//文件时长(秒)
+	optional uint64 uint64_starttime = 8;   //视频起始时间, 第一个视频为0，后续视频为与第一个视频开始时间的偏移值, 微秒
+	optional uint32 uint32_is_audio = 9;    //是否音频文件，1为音频 视频不用填或填0
+}
+
+message ShortVideoSureReqInfo{
+	optional uint64 	uint64_fromuin		= 1;//发送方UIN
+	optional uint32 	uint32_chat_type	= 2;//C2C-0，群-1，讨论组-2，临时会话-3
+	optional uint64 	uint64_touin		= 3;//接收方Uin(下载方)
+	optional uint64 	uint64_group_code 	= 4;//群uin,未加密
+	optional uint32 	uint32_client_type 	= 5;//客户端类型,1-企业QQ PC,2-Android,3-IOS,4-iPad,5-PC,6-TLinux
+	optional PicInfo	msg_thumbinfo		= 6;//缩略图的信息
+	repeated VideoInfo	rpt_msg_merge_videoinfo	= 7;//要拼接的短视频片段,以这个数据顺序进行拼接
+	repeated VideoInfo	rpt_msg_drop_videoinfo	= 8;//上传了的但是取消了的视频片段，可以上传掉了
+	optional uint32		uint32_business_type	= 9;//>>业务类型,0=手Q短视频,1=手Q小视频,1007=公众号临时视频,1009=公众号永久视频
+	optional uint32		uint32_sub_business_type= 10;//>>子业务类型,0=普通视频,1=群发祝福视频 3=手Q小视频
+}
+
+message ShortVideoSureRspInfo{
+	optional bytes		bytes_fileid 		= 1;//文件唯一标识 大数据通道后台生成，客户端提供生成方法
+	optional bytes 		bytes_ukey			= 2;//架平返回的文件签名
+	optional VideoInfo  msg_videoinfo		= 3;//合并之后的视频文件信息
+	optional uint32		uint32_merge_cost	= 4;//合并视频的耗时
+}
+
+message ShortVideoReqExtInfo
+{
+	optional uint32 	uint32_cmd			= 1;	//命令	0x1:缩略图上传	0x2:分片视频数据上传	0x3:确认上传	
+													//0x4:删除缩略图 0x5:删除视频数据
+	optional uint64		uint64_session_id	= 2;	//(timestamp<<32)|(uin)----timestamp 开始录制的事件
+	optional PicInfo	msg_thumbinfo		= 3;	//缩略图信息 0x1/0x4 时使用
+	optional VideoInfo	msg_videoinfo		= 4;	//短视频信息，0x2/0x5 使用
+	optional ShortVideoSureReqInfo msg_shortvideo_sure_req = 5;//0x3 req使用
+	optional bool		bool_is_merge_cmd_before_data 	   = 6;//是否是合成命令不等待数据收齐
+}
+message ShortVideoRspExtInfo
+{
+	optional uint32 	uint32_cmd			= 1;	//命令	0x1:缩略图上传	0x2:分片视频数据上传	0x3:确认上传	
+													//0x4:删除缩略图 0x5:删除视频数据
+	optional uint64		uint64_session_id	= 2;	//(timestamp<<32)|(uin)----timestamp 开始录制的事件
+	optional int32		int32_retcode		= 3;
+	optional bytes		bytes_errinfo		= 4;
+	optional PicInfo	msg_thumbinfo		= 5;	//缩略图信息 0x1/0x4 时使用
+	optional VideoInfo	msg_videoinfo		= 6;	//短视频信息，0x2/0x5 使用
+	optional ShortVideoSureRspInfo msg_shortvideo_sure_rsp = 7;//0x3 rsp使用
+	optional uint32		uint32_retry_flag	= 8;	//异常情况下(int32_retcode!=0),用于控制是否让兜底逻辑
+													//0:直接使用客户端兜底
+													//1:禁止客户端使用兜底逻辑
+}
+//短视频相关 END
+
+//通用图片上传 BEGIN
+//1.截图表情漫游
+//  请求时，需要把申请信令时的file_resid带过来
+//2.ar抢地盘
+//  请求时，不带uuid, 后台生成,
+//  响应时, rsp下载原图url
+message UploadPicExtInfo
+{
+	optional bytes bytes_file_resid		   = 1;//请求: 如果客户端有uuid，则带上来，如果没有则后台生成uuid
+                                               //响应: 把文件的uuid返回
+    optional bytes bytes_download_url      = 2;//响应: 下载原图url
+    optional bytes bytes_thumb_download_url= 3;//响应: 下载缩略图url
+}
+//通用图片上传 END
+
+
+//日迹视频上传 BEGIN
+message StoryVideoExtReq {
+// null
+}
+
+message StoryVideoExtRsp {
+    optional int32   int32_retcode = 1; //0:succ other:failed
+    optional bytes   bytes_msg     = 2; //err info
+    optional bytes   bytes_cdn_url = 3; //视频下载地址
+    optional bytes   bytes_file_key = 4; //视频filekey
+    optional bytes   bytes_file_id  = 5; //视频fileid
+}
+//END
+
+//语音输入 BEGIN
+message QQVoiceExtReq {
+    optional bytes   bytes_qid    = 1; //uin+手机IMEI+语音文件md5
+    optional uint32  uint32_fmt   = 2; //编码格式 1-raw(pcm), 2-wav, 3-amr, 4-silk
+    optional uint32  uint32_rate  = 3; //采样率，目前只支持16KHZ
+    optional uint32  uint32_bits  = 4; //采样位数，目前支持16bit
+    optional uint32  uint32_channel  = 5; //声道数，目前只支持单声道
+    optional uint32  uint32_pinyin  = 6; //是否返回拼音结果，0-不返回，1-返回
+}
+
+message QQVoiceResult {
+    optional bytes  bytes_text = 1;
+    optional bytes  bytes_pinyin = 2;
+    optional uint32 uint32_source = 3;  //识别源，1：ai lab， 2：微信
+}
+
+message QQVoiceExtRsp {
+    optional bytes   bytes_qid    = 1;
+    optional int32   int32_retcode = 2;
+    repeated QQVoiceResult msg_result = 3;
+}
+//END
+
+//通用的文件存储 BEGIN
+message CommFileExtReq {
+    optional uint32  uint32_action_type = 1;    // 0:put(如果存在则进行更新)
+    optional bytes   bytes_uuid         = 2;    // 存储文件的uuid
+}
+
+message CommFileExtRsp {
+    optional int32   int32_retcode = 1; // 返回错误码
+    optional bytes   bytes_download_url = 2; // 下载文件的url
+}
+//END

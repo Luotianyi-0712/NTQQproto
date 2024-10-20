@@ -1,0 +1,441 @@
+syntax = "proto2";
+package tencent.mobileim.structmsg;
+
+/*
+字段介绍：
+
+sub_type子类型：
+好友:
+  	0:我主动发起的未决请求
+	1:表示别人请求添加我的未决请求
+	2:我同意的请求 rpt_str_wording为fuin请求添加uin时候的附言
+	3:我同意并添加的请求 rpt_str_wording为fuin请求添加uin时候的附言
+	4:对方同意的请求 rpt_str_wording为uin请求添加fuin时候的附言
+	5:对方同意并添加的请求 rpt_str_wording为uin请求添加fuin时候的附言
+	6:对方拒绝我的请求 rpt_str_wording为fuin拒绝uin时候的附言
+	7:我拒绝对方的请求 rpt_str_wording为fuin请求uin时候的附言
+	8:我忽略的请求 rpt_str_wording为fuin请求添加uin时候的附言
+	9:我设置允许任何人时 对方添加了我 无Wording
+	10:我设置需要回答问题 对方回答正确并添加了我 无Wording
+	//11:我同意并添加,对方加我成功了,我加对方失败--->ProfileService不支持该类型
+	12:我接收的消息提示 仅用于后台向客户端下发一条消息提示--2015-05-24新扩展的验证消息类型
+	  --sub_type=12,对应friend_msg_type_flag的bit 0x0000 0001,只有客户端传入的friend_msg_type_flag&0x0000 0001 == 0x0000 0001时,后台才会返回sub_type=12的扩展好友验证消息.手Q后台和客户端在收到sub_type=12的扩展验证消息时要特殊处理,只是给用户一个提示,不提供按钮让
+用户操作.例如提示用户:对方添加你时,你的好友表已满,对方添加失败
+
+群：
+	1:未处理
+	2:已同意
+	3:已拒绝
+	4:已忽略
+	5:已处理
+
+群msg_type:
+	1:	“用户昵称”申请加入“群名称”群。
+	2:	“用户昵称”邀请您加入“群名称”群。
+	10:	您的好友“用户昵称”拒绝加入“群名称”群。拒绝理由：XXX
+	11:	“群名称”群管理员“用户昵称”拒绝了您的加群请求。拒绝理由：XXX
+	12:	您的好友“用户昵称”已经同意加入“群名称”群。
+	20(同2，已废弃）:	您的好友“用户昵称”邀请您加入“群名称”群。
+	21（同12，已废弃）:	您的好友“用户昵称”已经同意加入“群名称”群。附加信息：正在等待管理员验证。
+	22:	“用户昵称”申请加入“群名称”群。附加信息：来自群成员XXX的邀请。
+	23（同10，已废弃）:	您的好友“用户昵称”拒绝加入“群名称”群。拒绝理由：XXX。
+	35:	群“群名称”管理员已同意您的加群申请
+
+4.7.1新增msg_type，子类型均为5：
+	3：成为管理员，通知全员。
+	6：UIN被T 出群，通知管理员。
+	7：UIN被T 出群，通知UIN。
+	13：UIN退群，通知管理员。
+	15：管理员身份被取消，通知被取消人。
+	16：管理员身份被取消，通知其他管理员。
+5.0新增通用消息msg_type：	
+	80：通知类型通用消息： sub_type=1为展示隐藏群
+
+	82：关联群的公众号验证消息
+
+	
+
+msg_describe描述信息:
+	模板信息，客户端需理解及处理跳转，以%开始和结束，有%action_uin%和%req_uin%、%actor_uin%，%group_name%。
+	如:		%req_uin%拒绝加入群；%action_uin%邀请我加入群。
+
+Action操作：
+0：默认（走统一上报）
+1：跳备注与分组选择界面（走统一上报）
+2：跳填写验证信息的界面
+3：跳群邀请
+
+language字段说明（值-对应语言）：
+0,	   StructMsg.conf     中文(5.0以下版本)
+1,	   StructMsg_en.conf  英文(5.0以下版本)
+1000,  StructMsg_1000     中文
+1001,  StructMsg_en_1001  英文
+1002,  StructMsg_de_1002  德文
+1003,  StructMsg_es_1003  西班牙文
+1004,  StructMsg_fr_1004  法文
+1005,  StructMsg_jp_1005  日文
+1006,  StructMsg_ko_1006  朝鲜文
+1007,  StructMsg_tw_1007  中文(台湾)
+
+*/
+
+enum SystemMsgActionType {
+	FRIEND_AGREE = 1;			//好友同意
+	FRIEND_AGREE_AND_ADD = 2;		//好友同意并添加
+	FRIEND_REJECT = 3;			//好友拒绝
+	FRIEND_IGNORE = 4;			//好友忽略
+	GROUP_AGREE = 11;			//群同意
+	GROUP_REJECT = 12;			//群拒绝
+	GROUP_REJECT_AND_BLACKLIST = 13;	//群拒绝并黑名单
+	GROUP_IGNORE = 14;			//群忽略
+	GROUP_DEL = 15;			//群消息删除
+	GROUP_FOLLOW = 16;		//群消息关注公众号
+}
+
+message AddFrdSNInfo{
+	optional uint32 uint32_not_see_dynamic = 1;// 是否不让他看我的动态标志位,1--是，0--否
+	optional uint32 uint32_set_sn = 2;// 是否设置为收纳,1--设置，0--不设置
+}
+
+message SystemMsgActionInfo{
+	optional SystemMsgActionType type = 1;	//操作类型
+	optional uint64 group_code = 2;	//群code
+	optional bytes sig = 3;			//需要携带的签名
+
+//客户端填充		
+	optional string msg = 50;		//附加信息，客户端可填充
+	optional uint32 group_id = 51;	//分组ID，客户端可填充
+	optional string remark = 52;	//备注，客户端可填充
+	optional bool blacklist = 53;	//如果设置则认为需要同时加黑名单
+	optional AddFrdSNInfo addFrdSNInfo = 54;//加好友信息,透传给0x47c的tlv(t=1004)
+	optional uint32 uint32_req_msg_type = 55;   //0x902群处理的消息分类 1 正常消息 2 可疑消息,不填默认为正常消息
+}
+
+message SystemMsgAction{
+	optional string name = 1;			//名字展示
+	optional string result = 2;			//Action操作结果展示
+	optional uint32 action = 3;			//Action操作，见字段介绍
+	optional SystemMsgActionInfo action_info = 4;//Action上行的操作结构体
+	optional string detail_name = 5;	//在详情上的名字展示
+}
+
+//请求类型
+enum CheckType {
+	Check_Default = 1;		//内部用，客户端不使用
+	Check_Friend = 2;		//只请求好友
+	Check_Group = 3;		//只请求群	
+	Check_Both = 4;			//同时请求好友和群，拉取不糅合
+}
+
+// 结构化消息类型
+enum StructMsgType {
+	SYSTEM_MSG_Friend = 1;	//好友验证消息
+	SYSTEM_MSG_GROUP = 2;	//群验证消息
+	// 新扩展的消息类型在这里添加
+}
+
+message StructMsg{
+	//公共字段
+	optional uint32 version  = 1;			//结构化消息版本
+	optional StructMsgType msg_type = 2;	//消息类型
+	optional uint64 msg_seq = 3;			//消息seq
+	optional uint64 msg_time = 4;			//消息时间
+	optional uint64 req_uin = 5;			//请求方的UIN
+	optional  uint32    uint32_unread_flag = 6;//该条消息是否未读，1表示未读，0表示已读，仅对好友验证消息有效，群无效，透传0x5cf.All.uint32_unread_flag
+
+	// 扩展消息类型
+	optional SystemMsg  msg			= 50;
+	// 新扩展的消息类型在这里添加
+}
+
+message FriendInfo
+{
+	optional string msg_joint_friend = 1;		//展示共同好友数
+	optional string msg_blacklist = 2;		//屏蔽的二次确认，该项存在则说明需要展示屏蔽
+}
+
+message GroupInfo
+{
+	optional uint32 group_auth_type = 1;		//认证群
+	optional uint32 display_action = 2;			//默认不存在或0，对信用屏蔽则为1，列表应显示SystemMsg里actions中对应的action
+	optional string msg_alert = 3;				//在列表的信用屏蔽语
+	optional string msg_detail_alert = 4;		//在详情的信用屏蔽语
+	optional string msg_other_admin_done = 5;		//在列表中每条消息的右下角显示，标识其他管理员已处理
+	optional uint32 uint32_app_privilege_flag = 6;		//透传0x88d字段，认证群APP（群相册、群文件）上传权限标志，标志位含义参考0x89a协议的备注说明。
+														//注：判断一个群是否需要付费加群，需要同时满足(uint32_app_privilege_flag & 0x80) && (uint32_app_privilege_flag &0x200)
+}
+
+
+//邀请加群消息的扩展信息
+message MsgInviteExt
+{
+    optional uint32 uint32_src_type     = 1;  //邀请类型：0，邀请好友；1，邀请群成员；2，邀请讨论组成员
+    optional uint64 uint64_src_code     = 2;  //当邀请类型为1或2时对应的群或讨论组号码
+    optional uint32 uint32_wait_state   = 3;  //被邀请者同意后的等待状态：0，默认不展示；1，等待管理员审批；2，已加入；3，管理员已拒绝
+	//如果uint32_src_type=0，邀请好友，	 	 则 展示  QQ昵称（备注）， 			uin为action_uin， 昵称是action_uin_qq_nick，备注是action_uin_qq_nick
+	//如果uint32_src_type=1，邀请群成员，	 则 展示  群名片（群名）， 			uin为action_uin， uint64_src_code为群号，客户端自己查询本地数据填充，找不到可用昵称备注
+	//如果uint32_src_type=2，邀请讨论组成员，则 展示  讨论组名片（讨论组名），  uin为action_uin， uint64_src_code为讨论组uin，客户端自己查询本地数据填充，找不到可用昵称备注
+}
+
+//付费群相关消息的扩展信息
+message MsgPayGroupExt
+{
+	optional uint64 uint64_join_grp_time = 1;//入群时间
+	optional uint64 uint64_quit_grp_time = 2;//退群时间
+}
+
+message SystemMsg{
+	optional uint32 sub_type = 1;		//消息子类型，见字段介绍
+	optional string msg_title = 2;		//抬头信息
+	optional string msg_describe = 3;	//描述信息，UI上展示在昵称下面，server生成，见字段介绍
+	optional string msg_additional = 4;	//附加消息，UI上展示在描述信息下方，用户侧填写，如拒绝理由，验证问题等。
+	optional string msg_source = 5;		//来源信息，UI上展示在附加消息底下
+	optional string msg_decided = 6;	//如果是已决消息，UI上展示已决信息
+	optional uint32 src_id = 7;			//来源ID
+	optional uint32 sub_src_id = 8;		//子来源ID	
+	repeated SystemMsgAction actions = 9;	//操作信息
+	optional uint64 group_code = 10;		//关联群code
+	optional uint64 action_uin = 11;		//关联群处理uin
+	optional uint32 group_msg_type = 12;	//群msg_type,见字段介绍
+	optional uint32 group_inviter_role = 13;	//邀请好友加群，邀请者的身份。0非群成员，1群内普通成员，2群主，3管理员
+
+//好友和群后续字段放于struct内
+	optional FriendInfo friend_info = 14;
+	optional GroupInfo group_info = 15;
+	optional uint64 actor_uin = 16;//消息处理人,某些情况跟action_uin相同
+	optional string msg_actor_describe = 17;//处理人的描述wording
+
+	optional string msg_additional_list = 18;//消息列表展示的附加消息，只在消息列表展示，展示优先级高于msg_additional
+	optional uint32 relation = 19;//表明uin之间的关系,目前后台内部使用
+
+	optional uint32 reqsubtype = 20; //0x5cf All.uint32_reqsubtype  当 uint32_reqtype = 12 时，标识此提示消息的子类型，取值如下:
+	// 1: 因你的好友已达上限，对方无法添加你为好友
+	// 2: Clone frien 我是“昵称C（1445245）
+	optional uint64 clone_uin = 21;		//clone_uin
+	optional uint64 uint64_discuss_uin = 22;//如果是通过讨论组加好友的，这里会带上讨论组id
+    optional uint64 uint64_eim_group_id = 23;//eim 组id
+	
+	//20160721
+	optional MsgInviteExt msg_invite_extinfo = 24;  //邀请加群相关消息的扩展信息
+	optional MsgPayGroupExt msg_pay_group_extinfo = 25;	//付费群相关消息的扩展信息
+
+	//20170221
+	optional  uint32    uint32_source_flag = 26; //加好友来源标志位,bit 0=1:群来源,bit1=1:手机通讯录来源,bit2=1:交友来源, bit3=1:讨论组来源,bit4=1标识王者荣耀推荐
+	optional  bytes     bytes_game_nick    = 27; //游戏中的名字，目前在王者荣耀推荐来源时有效，透传5cf的game_nick
+	optional  bytes     bytes_game_msg     = 28; //王者荣耀加好友携带的验证消息，透传5cf的game_msg
+
+    //20170919
+	optional uint32     uint32_group_flagext3 = 29;//群标记位3,其值&0x20非0则为隐私群.(直接通过0x88d获取,同群svr保持一致),透传0x901.GroupMsg.uint32_group_flagext3 
+	optional uint64     uint64_group_owner_uin = 30;//群主uin,透传0x901.GroupMsg.uint32_group_flagext3 
+    optional  uint32    uint32_doubt_flag  = 31; //该请求是否可疑，透传5cf的doubt_flag
+	optional bytes  bytes_warning_tips = 32;        //安全提示语，UTF-8
+	optional bytes  bytes_name_more = 33;           //0x5cf返回通讯录名字等，有该字段则做相应的展示
+    optional  bytes     bytes_addtion      = 34; // 验证消息扩展部分，为序列化内容,0x5cf返回，透传	
+	optional bytes bytes_transparent_group_notify = 35; // 群联盟消息pb序列化之后填入此处
+	
+//附加字段信息，用于描述信息展示
+	optional int32 req_uin_faceid = 50;	//请求方系统头像的ID
+	optional string req_uin_nick = 51;	//请求方昵称/群名片/好友备注
+	optional string group_name = 52;	//群名
+	optional string action_uin_nick = 53;	//关联处理方昵称/好友备注
+	optional string msg_qna = 54;				//问题回答信息
+	optional string msg_detail = 55;		//在详情上的信息展示
+											//56,废弃
+	optional uint32 group_ext_flag = 57;		//群ext标志位
+	optional string actor_uin_nick = 58;		//消息处理人昵称
+	optional bytes pic_url = 59;			//申请者上传图片URL
+	optional string clone_uin_nick = 60;	//关联处理方昵称/好友备注
+	optional bytes req_uin_business_card = 61;	//请求方名片,  0x441.CardInfo.SerializeToString
+	
+	//optional bytes discuss_uin_name = 62;//如果是通过讨论组加好友的, 这里下发 讨论组名称
+    optional bytes eim_group_id_name = 63;//eim 组 名称
+	optional bytes req_uin_pre_remark = 64;//请求方预加备注，EIM使用
+	
+	optional bytes action_uin_qq_nick = 65;	//action_uin的昵称 ，action_uin_nick是按备注>群名片>QQ昵称优先级比对之后结果
+	optional bytes action_uin_remark = 66;	//action_uin的备注
+
+	optional uint32 req_uin_gender  = 67;	//请求方gender
+	optional uint32 req_uin_age 	= 68;	//请求方age
+	optional uint32 uint32_c2c_invite_join_group_flag = 69;//c2c邀请加群flag，新版客户端群通知不展示此flag > 0的消息 20190415
+	//only used for server
+	optional uint32 card_switch = 101; 
+	
+	optional bytes bytes_source_desc = 108; // source_desc 用于透传来自0x5cf的附加信息	
+
+	optional  string uid = 110; // uid 返回好友未决中的uin对应的uid, 用来支持NT客户端使用uid作为请求主key，目前仅支持好友验证页返回的uin
+
+	optional bytes bytes_group_trans_info = 112; //  来自0x901的透传信息
+}
+
+////////////////////////////客户端请求
+//拉最新的漫游验证消息，登陆带存储seq，push/无存储seq填0
+message RspHead
+{
+	optional int32 result = 1;		//0:成功
+	optional string msg_fail = 2;	//失败时的消息展示
+}
+
+message ReqSystemMsg
+{
+	optional uint32 msg_num = 1;			//需要拉的验证消息数(不大于50)
+	optional uint64 latest_friend_seq = 2;	//客户端存储最新的好友seq
+	optional uint64 latest_group_seq = 3;	//客户端存储最新的群seq
+	optional uint32 version = 4;			//客户端版本号
+	optional uint32 language = 5;			//客户端语言类型,默认中文,0:中文,1:英文,详情见上描述
+};
+
+message RspSystemMsg
+{
+	optional RspHead head = 1;
+	repeated StructMsg msgs = 2;		
+	optional uint32 unread_count = 3;			//未读计数
+	optional uint64 latest_friend_seq = 4;		//客户端存储最新的好友seq
+	optional uint64 latest_group_seq = 5;		//客户端存储最新的群seq
+	optional uint64 following_friend_seq = 6;	//客户端存储最新的拉下页的好友seq
+	optional uint64 following_group_seq = 7;	//客户端存储最新的拉下页的群seq
+	optional string msg_display = 8;			//在消息Tab的展现
+}
+
+message FlagInfo
+{
+	optional uint32 GrpMsg_Kick_Admin = 1;		//展示被踢和设置/取消管理员
+	optional uint32 GrpMsg_HiddenGrp = 2;		//展示隐藏群设置（通知类型通用消息）,80_1
+	optional uint32 GrpMsg_WordingDown = 3;		//群wording下移（5.9+版），"正在等待管理员验证"，填1，原来在msg_additional改为msg_detail
+	optional uint32 FrdMsg_GetBusiCard = 4;		//好友验证消息，是否拉取名片
+	optional uint32 GrpMsg_GetOfficialAccount = 5; //群验证消息，是否拉取关联群的公众号验证消息
+	optional uint32 GrpMsg_GetPayInGroup = 6; //群验证消息，是否拉取成员付费进群消息进入群通知
+	optional uint32 FrdMsg_Discuss2ManyChat = 7; //好友证消息，6.3.1以上支持，是否多人聊天版本，1-是
+	optional uint32 GrpMsg_NotAllowJoinGrp_InviteNotFrd = 8; //群证消息，是否支持免验证邀请加群& 邀请非好友（群友和讨论组好友），1-是
+	optional uint32 FrdMsg_NeedWaitingMsg = 9; //好友证消息，是否支持等待验证的消息
+	optional uint32 FrdMsg_uint32_need_all_unread_msg = 10; //是否首屏需要全部的未读消息,对应oidb 0x5cf.ReqBody.uint32_need_all_unread_msg字段	
+	optional uint32 GrpMsg_NeedAutoAdminWording = 11; //是否拉取 QQ群官号自动任命管理员wording，对应msg_detail展示， 1--是，其他--否
+	optional uint32 GrpMsg_get_transfer_group_msg_flag = 12; //是否需要拉取群转让相关消息.1为需要，其他及默认值为不需要.涉及msgtype 17、18、19,透传0x901的uint32_get_transfer_group_msg_flag字段
+	optional uint32 GrpMsg_get_quit_pay_group_msg_flag = 13; //是否需要拉取退出付费加入的群的通知消息.1为需要，其他及默认值为不需要.涉及msgtype 83,透传0x901的uint32_get_quit_pay_group_msg_flag字段
+	optional uint32 GrpMsg_support_invite_auto_join = 14; //支持邀请加群自动加入,1-支持,透传0x901的uint32_support_invite_auto_join 
+	optional uint32 GrpMsg_mask_invite_auto_join = 15;    //DOV是否需要屏蔽自动加群的验证消息, 1-屏蔽,当前处理是消息仍会下发,客户端不展示,但消息tab预览wording不会展示,DOV填1
+                                                          //14是透传给0x901是否返回自动加群(status=4),15是是否不展示自动加群消息，目前仅处理的是消息tab预览wording
+	optional uint32 GrpMsg_GetDisbandedByAdmin = 16;      //是否拉取群解散消息，1-是
+	optional uint32 GrpMsg_GetC2cInviteJoinGroup = 17;      //是否拉取c2c邀请加群，1-是，手Q805/PC912以后 填1
+}
+//friend_msg_type_flag中的每一bit对应一种扩展好友验证消息
+//假定0x0000 0000 0000 0001对应type A
+//假定0x0000 0000 0000 0002对应type B
+//假定0x0000 0000 0000 0004对应type C
+//只支持type A扩展好友验证消息的客户端,friend_msg_type_flag填0x0000 0000 0000 0001 
+//只支持type A, type B扩展好友验证消息的客户端,friend_msg_type_flag填0x0000 0000 0000 0003 
+//只支持type A, type B, type C扩展好友验证消息的客户端,friend_msg_type_flag填0x0000 0000 0000 0007 
+//后台会根据friend_msg_type_flag来确定返回哪些类型的扩展好友验证消息,例如如果friend_msg_type_flag
+//的取值为0x0000 0000 0000 0003,则后台不会返回type C类型的扩展好友验证消息,只会返回type A, type B
+//类型的扩展好友验证消息
+message ReqSystemMsgNew
+{
+	optional uint32 msg_num = 1;			//需要拉的验证消息数(不大于50)
+	optional uint64 latest_friend_seq = 2;	//客户端存储最新的好友seq
+	optional uint64 latest_group_seq = 3;	//客户端存储最新的群seq
+	optional uint32 version = 4;			//客户端版本号,1000:手5.0+版本,支持带有处理人的消息
+	optional CheckType checktype = 5;		//拉取类型
+	optional FlagInfo flag = 6;				//标志
+	optional uint32 language = 7;			//客户端语言类型,默认中文,0:中文,1:英文
+	optional bool is_get_frd_ribbon = 8[default=true];//是否拉取小黄条,5.0版本好友不需要
+	optional bool is_get_grp_ribbon = 9[default=true];//是否拉取小黄条,5.0版本群不需要
+	optional uint64 friend_msg_type_flag = 10;       //客户端支持的扩展好友验证消息类型,对应oidb 0x5cf的int64_uin_type_flag字段
+	optional uint32 uint32_req_msg_type = 11;   //0x901群消息请求的消息分类 1 正常消息 2 可疑消息
+	optional uint32 uint32_need_uid = 16; // 0x5cf 支持给NT客户端返回uid, 需要客户端显式携带这一请求
+};
+
+message RspSystemMsgNew
+{
+	optional RspHead head = 1;		
+	optional uint32 unread_friend_count = 2;	//好友未读计数
+	optional uint32 unread_group_count = 3;		//群未读计数
+	optional uint64 latest_friend_seq = 4;		//客户端存储最新的好友seq
+	optional uint64 latest_group_seq = 5;		//客户端存储最新的群seq
+	optional uint64 following_friend_seq = 6;	//客户端存储最新的拉下页的好友seq
+	optional uint64 following_group_seq = 7;	//客户端存储最新的拉下页的群seq
+												//8废弃
+	repeated StructMsg friendmsgs = 9;			//好友消息
+	repeated StructMsg groupmsgs = 10;			//群消息
+	optional StructMsg msg_ribbon_friend = 11;	//好友小蓝条
+	optional StructMsg msg_ribbon_group = 12;	//群小蓝条
+	optional string msg_display = 13;			//在消息Tab的展现(!!这个目前用于好友消息使用)
+	optional string grp_msg_display = 14;			//在消息Tab的展现(这个用在群通知使用)
+	optional uint32  uint32_over =15;//1所有已全部拉去，0部分拉去，仅对好友验证消息有效，群无效，透传0x5cf.RspBody.SuccessRead.uint32_over
+///
+	optional CheckType checktype = 20;		//和请求一致
+
+	optional string     bytes_game_nick    = 100; //我在游戏中的角色名，有王者未决时填充，透传5cf的SuccessRead中的bytes_game_nick
+    optional bytes      bytes_undecid_for_qim = 101;//QIM未决的未读列表，透传0x5cf.SuccessRead.bytes_undecid_for_qim(),内容解析联系morriszheng
+	optional uint32    uint32_un_read_count3 = 102; //可疑未读计数 透传0x5cf.SuccessRead.uint32_un_read_count3(),内容解析联系starshu
+	optional uint32 uint32_has_suspicious_flag = 103;//0x901返回是否存在可疑消息标记,供客户端判断是否需要拉取可疑列表 0 不存在 1 存在
+}
+
+//拉翻页漫游
+message ReqNextSystemMsg
+{
+	optional uint32 msg_num = 1; 				//需要拉的验证消息数(不大于50)
+	optional uint64 following_friend_seq = 2; 	//客户端存储最新的拉下页的好友seq
+	optional uint64 following_group_seq = 3; 	//客户端存储最新的拉下页的群seq
+	optional CheckType checktype = 4;			//拉取类型，区分群、好友单独拉取
+	optional FlagInfo flag = 5;					//标志
+	optional uint32 language = 6;			//客户端语言类型,默认中文,0:中文,1:英文
+	optional uint32 version = 7;			//客户端版本号,1000:手5.0+版本,支持带有处理人的消息	
+	optional uint64 friend_msg_type_flag = 8;       //客户端支持的扩展好友验证消息类型,对应oidb 0x5cf的int64_uin_type_flag字段
+	optional uint32 uint32_req_msg_type = 9;   //0x901群消息请求的消息分类 1 正常消息 2 可疑消息
+	optional uint32 uint32_need_uid = 16; // 0x5cf 支持给NT客户端返回uid, 需要客户端显式携带这一请求
+}
+
+message RspNextSystemMsg
+{
+	optional RspHead head = 1;
+	repeated StructMsg msgs = 2;
+	optional uint64 following_friend_seq = 3;	//客户端存储最新的拉下页的好友seq
+	optional uint64 following_group_seq = 4;	//客户端存储最新的拉下页的群seq
+	optional CheckType checktype = 5;			//和请求一致
+	
+	optional string     bytes_game_nick    = 100; //我在游戏中的角色名，有王者未决时填充，透传5cf的SuccessRead中的bytes_game_nick
+    optional bytes      bytes_undecid_for_qim = 101;//QIM未决的未读列表，透传0x5cf.SuccessRead.bytes_undecid_for_qim(),内容解析联系morriszheng
+	optional uint32    uint32_un_read_count3 = 102; //可疑未读计数 透传0x5cf.SuccessRead.uint32_un_read_count3(),内容解析联系starshu
+}
+
+//已读上报/清空消息
+message ReqSystemMsgRead
+{
+	optional uint64 latest_friend_seq = 1;	//客户端存储最新的好友seq
+	optional uint64 latest_group_seq = 2;	//客户端存储最新的群seq
+	optional uint32 type = 3;				//type为空则已读上报，type为1则清空消息
+	optional CheckType checktype = 4;		//拉取类型，区分群、好友单独上报/清空
+	optional uint32 uint32_req_msg_type = 5;   //0x901群处理的消息分类 1 正常消息 2 可疑消息,不填默认为正常消息
+}
+
+message RspSystemMsgRead
+{
+	optional RspHead head = 1;
+	optional uint32 type = 2;				//type为空则已读上报，type为1则清空消息
+	optional CheckType checktype = 3;		//和请求一致
+}
+
+//操作上报
+message ReqSystemMsgAction
+{
+//带StructMsg/SystemMsg里的部分信息
+	optional StructMsgType msg_type = 1;	//消息类型
+	optional uint64 msg_seq = 2;		//消息seq
+	optional uint64 req_uin = 3;		//操作uin
+	optional uint32 sub_type = 4;		//消息子类型，见字段介绍
+	optional uint32 src_id = 5;			//来源ID
+	optional uint32 sub_src_id = 6;		//子来源ID	
+	optional uint32 group_msg_type = 7;	//群msg_type,见字段介绍
+	optional SystemMsgActionInfo action_info = 8;	//ActionInfo信息
+	optional uint32 language = 9;			//客户端语言类型,默认中文,0:中文,1:英文
+}
+
+message RspSystemMsgAction
+{
+	optional RspHead head = 1;					//head.result=0x3ed(1005):已处理
+									//head.result=700:设置黑名单失败
+	optional string msg_detail = 2;				//上报完成后详情的信息展示
+	optional uint32 type = 3;					//type: 0: 默认展现； 1: 去除按钮展现
+												//4，废弃
+	optional string msg_invalid_decided = 5;	//列表已决展现
+	optional uint32 remark_result = 6;			//好友备注设置是否成功，0表示设置成功
+}
